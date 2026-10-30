@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Oribu — Tablero</title><meta name="theme-color" content="#a9cde6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="stylesheet" href="/oribu/style.css"></head><body>
+<div id="game">
+  <canvas id="cv" aria-label="Oribu game"></canvas>
+  <div id="hud"><a class="hb" href="/" aria-label="Back to Tablero">←</a><span id="time">0:00.0</span><span id="bal">🎈 0/20</span><button class="hb" id="pauseBtn" aria-label="Pause">❚❚</button></div>
+  <div id="pad">
+    <div class="mv"><button data-k="l" aria-label="Left">◀</button><button data-k="r" aria-label="Right">▶</button></div>
+    <div class="ac"><button data-k="swing" class="sw" aria-label="Swing">SWING</button><button data-k="jump" class="jp" aria-label="Jump">JUMP</button></div>
+  </div>
+  <div id="rotate" hidden>Turn your phone sideways ↻</div>
+  <div id="title" class="ov"><div class="box">
+    <h1>Oribu</h1><p class="sub">Rooftop Run</p>
+    <p class="hint">Bring back the runaway balloons!<br><b>◀ ▶</b> run · <b>JUMP</b> (hold = higher) · hold <b>SWING</b> on the yellow rings, let go to fly</p>
+    <p class="keys">Keyboard: ← → / A D · Space / W jump · Shift / J swing</p>
+    <button class="btn" id="play">Play</button><button class="btn ghost" id="cont" hidden>Continue from flag</button>
+    <p class="best" id="best"></p></div></div>
+  <div id="pause" class="ov" hidden><div class="box"><h2>Paused</h2><button class="btn" id="resume">Keep going</button><button class="btn ghost" id="restart">Start over</button><a class="btn ghost" href="/">Back to Tablero</a></div></div>
+  <div id="end" class="ov" hidden><div class="box"><h2>You did it! 🎉</h2><p class="big" id="endTime"></p><p id="endBal"></p><p class="best" id="endBest"></p><button class="btn" id="again">Play again</button><a class="btn ghost" href="/">Back to Tablero</a></div></div>
+</div>
+<script type="module" src="/oribu/main.js"></script></body></html>
