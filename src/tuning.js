@@ -20,10 +20,9 @@ export const T = {
   swingRange: 6,        // tiles: grabs nearest glowing anchor ahead/above
   ropeMax: 5,           // tiles: rope length at grab is capped here
   releaseBoost: 1.3,
-  assistTime: 0.5,      // s after a swing release: gentle arc assist toward the next roof
-  assistGravity: 0.7,   // gravity multiplier during the assist
-  assistMinRun: 6,
-  assistLift: 8,        // tiles/s: a release always leaves with at least this much upward speed      // tiles/s forward speed floor during the assist
+  assistTime: 0.3,      // s after a swing release: horizontal steer toward the landing roof (gravity stays normal)
+  assistMinRun: 10,
+  assistLift: 10,        // tiles/s: a release always leaves with at least this much upward speed      // tiles/s forward speed floor during the assist
   swingMaxSpeed: 12,    // tiles/s
   swingPump: 10,        // tiles/s² sideways push from ◀ ▶ while swinging
   regrabDelay: 0.15,    // s after a release before the rope can grab again
@@ -37,7 +36,7 @@ export const T = {
   awning: 12,           // tiles, bounce awning height
   // pigeon side bump (no respawn)
   hitHopX: 4, hitHopUp: 1, // tiles/s back, tiles high
-  invuln: 1,            // s blinking, pigeons can't touch you
+  invuln: 0.5,          // s grace after a bump: pigeons can't re-touch you (Oribu stays visible)
   // respawn
   respawnTime: 0.8,     // s
   pigeonSpeed: 1.2,     // tiles/s

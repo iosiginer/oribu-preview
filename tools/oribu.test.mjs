@@ -13,7 +13,7 @@ test("level data: 20 balloons, 4 checkpoints, start, finish, anchors, pigeon", (
 });
 test("tuning spec values", () => {
   assert.equal(TILE, 32); assert.equal(T.runTop, 6); assert.equal(T.coyote, 0.15); assert.equal(T.jumpHold, 4.5); assert.equal(T.buffer, 0.12); assert.equal(T.fallMult, 1.6);
-  assert.equal(T.swingRange, 6); assert.equal(T.ropeMax, 5); assert.equal(T.releaseBoost, 1.3); assert.equal(T.invuln, 1); assert.equal(T.swingMaxSpeed, 12);
+  assert.equal(T.swingRange, 6); assert.equal(T.ropeMax, 5); assert.equal(T.releaseBoost, 1.3); assert.equal(T.invuln, 0.5); assert.equal(T.assistTime, 0.3); assert.equal(T.assistGravity, undefined); assert.equal(T.swingMaxSpeed, 12);
   assert.equal(T.wallSlideMax, 2); assert.equal(T.wallJumpOut, 3); assert.equal(T.wallJumpUp, 3.5); assert.equal(T.wallLock, 0.15);
   assert.equal(T.bop, 3); assert.equal(T.bopHeld, 4.5);
 });
@@ -73,7 +73,7 @@ test("bop bounces 3 tiles (4.5 held) and poofs the pigeon; side bump hops back +
     assert.ok(Math.abs((bopY - top) / TILE - want) < 0.2, `bop ${((bopY - top) / TILE).toFixed(2)}`);
   }
   const s = newState(LEVEL); s.cp = 3; const g = s.pigeons[0]; s.p.x = g.x - 40; s.p.y = g.y - T.h / 2; s.p.ground = true;
-  let bumped = false; for (let i = 0; i < 30; i++) { step(s, { r: true }); if (s.events.includes("bump")) { bumped = true; assert.ok(s.p.vx < 0 && s.p.vy < 0 && s.p.inv > 0.9); } }
+  let bumped = false; for (let i = 0; i < 30; i++) { step(s, { r: true }); if (s.events.includes("bump")) { bumped = true; assert.ok(s.p.vx < 0 && s.p.vy < 0 && s.p.inv > 0.45 && s.p.inv <= 0.5); assert.ok(s.fx.length >= 10, "star burst around Oribu"); } }
   assert.ok(bumped); assert.equal(s.dead, 0); assert.ok(s.pigeons[0].alive);
   run(s, 70); assert.equal(s.p.inv, 0);
 });
@@ -103,7 +103,7 @@ function alley(deg) {
   }
   return false;
 }
-for (const deg of [10, 30, 60]) test(`alley: 3 swings cleared releasing at ${deg}° past the bottom`, () => assert.ok(alley(deg)));
+for (const deg of [1, 5, 10, 30, 60, 89]) test(`alley: 3 swings cleared releasing at ${deg}° past the bottom`, () => assert.ok(alley(deg)));
 test("widest (4-tile) gap: takeoff window is at least 50 px", () => {
   const ok = [];
   for (let off = -60; off <= 80; off++) { const s = newState(LEVEL); s.p.x = 26 * TILE; s.p.y = 19 * TILE - T.h; s.p.vx = 192; let jumped = false, prev = false, res = false;

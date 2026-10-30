@@ -145,9 +145,12 @@ export function step(s, inp) {
       p.vy = -D.wallUp; p.vx = -p.wall * D.wallOut; p.lock = t.wallLock; p.lockDir = p.wall; p.face = -p.wall;
       p.jumping = false; p.buffer = 0; s.events.push("walljump");
     }
-    if (p.assist > 0 && dir !== -p.face && Math.abs(p.vx) < D.assistMin) p.vx = p.face * D.assistMin;
+    if (p.assist > 0 && dir !== -p.face) { // steer horizontally toward the landing roof; gravity untouched
+      const need = landingSpeed(s); const want = Math.max(D.assistMin, need ?? 0);
+      if (p.face * p.vx < want) p.vx = p.face * Math.min(want, D.swingMax);
+    }
     // --- gravity ---
-    let g = D.g; if (p.assist > 0) g *= t.assistGravity;
+    let g = D.g;
     if (p.vy > 0) g *= t.fallMult; else if (p.jumping && !inp.jump) g *= D.cutMult;
     p.vy = Math.min(p.vy + g * DT, D.maxFall);
     if (p.wall && p.vy > D.wallSlide && dir !== -p.wall) p.vy = D.wallSlide;
@@ -177,7 +180,7 @@ export function step(s, inp) {
         p.vy = -(inp.jump ? D.bopHeldV : D.bopV); p.jumping = false; p.y = gy - t.h; p.rope = null;
       } else if (!(p.inv > 0)) { // side bump: hop back, blink, keep going
         const away = Math.sign(p.x + t.w / 2 - g.x) || -1; p.vx = away * D.hitX; p.vy = -D.hitUp; p.rope = null; p.jumping = false; p.ground = false;
-        p.inv = t.invuln; p.lock = 0.25; p.lockDir = -away; s.events.push("bump");
+        p.inv = t.invuln; p.lock = 0.25; p.lockDir = -away; s.events.push("bump"); const hc = center(s); burst(s, hc.x, hc.y, 10);
       }
     }
   }
@@ -188,6 +191,22 @@ export function step(s, inp) {
   if (m.finish && Math.abs(m.finish.x - c.x) < 24 && Math.abs(m.finish.y - (p.y + t.h)) < 48) { s.done = true; s.events.push("finish"); }
   if (p.y > m.H * TILE + 64) die(s);
   return s;
+}
+// Horizontal speed needed to land just past the near edge of the next roof ahead (normal gravity), or null.
+function landingSpeed(s) {
+  const p = s.p, t = s.t, D = s.D, f = p.face, feet = p.y + t.h, front = f > 0 ? p.x + t.w : p.x;
+  const apex = p.vy < 0 ? feet - p.vy * p.vy / (2 * D.g) : feet;
+  for (let k = 1; k <= 10; k++) {
+    const tx = Math.floor(front / TILE) + f * k; let ty = -1;
+    for (let y = 0; y < s.m.H; y++) if (solidAt(s.m, tx, y)) { ty = y; break; }
+    if (ty < 0) continue; const top = ty * TILE;
+    if (top < apex) return null; // a wall higher than we can reach: don't steer
+    // time to come down to the roof top: rise then fall (fall gravity)
+    const up = p.vy < 0 ? -p.vy / D.g : 0, drop = top - apex, fall = Math.sqrt(2 * Math.max(drop, 0) / D.fallG);
+    const edge = f > 0 ? tx * TILE + 12 : (tx + 1) * TILE - 12;
+    return Math.max(0, (edge - front) * f) / Math.max(up + fall, 0.05);
+  }
+  return null;
 }
 const approach = (v, to, d) => v < to ? Math.min(v + d, to) : Math.max(v - d, to);
 function clampSpeed(p, max) { const sp = Math.hypot(p.vx, p.vy); if (sp > max) { p.vx *= max / sp; p.vy *= max / sp; } }
