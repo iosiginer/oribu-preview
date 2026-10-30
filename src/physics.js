@@ -116,10 +116,10 @@ export function step(s, inp) {
   if (p.rope && !inp.swing) { // release: launch on the arc with a boost
     p.vx *= t.releaseBoost; p.vy *= t.releaseBoost; clampSpeed(p, D.swingMax);
     if (p.vy > -D.assistLift) { p.vy = -D.assistLift; const vmax = Math.sqrt(Math.max(0, D.swingMax ** 2 - p.vy ** 2)); if (Math.abs(p.vx) > vmax) p.vx = Math.sign(p.vx) * vmax; } // lift wins over sideways speed
-    p.last = p.rope.a; p.rope = null; p.regrab = t.regrabDelay; p.assist = t.assistTime; p.roof = nextRoof(s); if (!p.roof) p.assist = 0; p.jumping = false; s.events.push("launch");
+    p.last = p.rope.a; p.rope = null; p.regrab = t.regrabDelay; p.assist = t.assistTime; p.roof = nextRoof(s); p.ring = nextRing(s, p.roof); if (p.ring) p.roof = null; if (!p.roof && !p.ring) p.assist = 0; p.jumping = false; s.events.push("launch");
   }
   if (!p.rope && inp.swing && !p.ground && p.regrab <= 0) {
-    const a = findAnchor(s, p.last);
+    const a = findAnchor(s, p.last) || catchAnchor(s);
     if (a) { const c = center(s); p.rope = { a, len: Math.min(Math.hypot(a.x - c.x, a.y - c.y), D.ropeMax) }; s.events.push("grab"); }
   }
   if (p.rope) {
@@ -145,6 +145,12 @@ export function step(s, inp) {
     else if (p.buffer > 0 && p.wall && !p.ground) {
       p.vy = -D.wallUp; p.vx = -p.wall * D.wallOut; p.lock = t.wallLock; p.lockDir = p.wall; p.face = -p.wall;
       p.jumping = false; p.buffer = 0; s.events.push("walljump");
+    }
+    if (p.assist > 0 && p.ring) { // no roof under the next ring: steer toward that ring, never past it
+      const a = p.ring, cx = p.x + t.w / 2, f = p.face, gap = (a.x - cx) * f;
+      if (gap <= TILE / 2 || p.rope) p.assist = 0;
+      else if (dir !== -p.face) { const hi = Math.min(gap / Math.max(p.assist, DT), Math.sqrt(Math.max(0, D.swingMax ** 2 - p.vy ** 2)));
+        const v = Math.min(Math.max(p.vx * f, D.assistMin), hi); p.vx = f * v; }
     }
     if (p.assist > 0 && p.roof) { // steer sideways toward the NEXT roof only; gravity untouched
       const r = p.roof, cx = p.x + t.w / 2;
@@ -202,6 +208,24 @@ export function step(s, inp) {
   if (m.finish && Math.abs(m.finish.x - c.x) < 24 && Math.abs(m.finish.y - (p.y + t.h)) < 48) { s.done = true; s.events.push("finish"); }
   if (p.y > m.H * TILE - t.h / 2) die(s); // die while still at the screen's bottom edge so the spin is visible
   return s;
+}
+// Next ring ahead (past the one just released) that comes BEFORE the next roof, or null.
+function nextRing(s, roof) {
+  const p = s.p, f = p.face || 1, cx = p.x + s.t.w / 2; let best = null;
+  for (const a of s.m.anchors) { if (a === p.last || (a.x - cx) * f <= 0) continue;
+    if (roof && (f > 0 ? a.x > roof.x0 : a.x < roof.x1)) continue;
+    if (!best || (a.x - cx) * f < (best.x - cx) * f) best = a; }
+  return best;
+}
+// Auto-catch: holding swing and passing within catchRange of any ring (even just behind) grabs it.
+function catchAnchor(s) {
+  const c = center(s); let best = null, bd = s.t.catchRange * TILE;
+  for (const a of s.m.anchors) { if (a === s.p.last) continue; const d = Math.hypot(a.x - c.x, a.y - c.y); if (d <= bd) { bd = d; best = a; } }
+  return best;
+}
+export function ringGlow(s, a) { // 0..1 proximity glow while swing is held or the ring is in range
+  const c = center(s), d = Math.hypot(a.x - c.x, a.y - c.y), r = s.D.range;
+  return (s.p.prev.swing || d <= r) && !s.dead ? Math.max(0, 1 - d / (r * 1.5)) : 0;
 }
 // The next roof ahead of the hero (first column with ground whose top is below the hero's apex), as a span of same-height tops.
 function nextRoof(s) {

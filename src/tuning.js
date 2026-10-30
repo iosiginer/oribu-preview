@@ -22,9 +22,10 @@ export const T = {
   releaseBoost: 1.3,
   assistTime: 0.3,      // s after a swing release: horizontal steer toward the landing roof (gravity stays normal)
   assistMinRun: 10,
-  assistLift: 10,        // tiles/s: a release always leaves with at least this much upward speed      // tiles/s forward speed floor during the assist
+  assistLift: 11,        // tiles/s: a release always leaves with at least this much upward speed      // tiles/s forward speed floor during the assist
   swingMaxSpeed: 12,    // tiles/s
   swingPump: 10,        // tiles/s² sideways push from ◀ ▶ while swinging
+  catchRange: 1.5,      // tiles: holding swing auto-catches any ring you pass this close to
   regrabDelay: 0.15,    // s after a release before the rope can grab again
   // wall
   wallSlideMax: 2,      // tiles/s

@@ -1,6 +1,6 @@
 // Canvas renderer: read-only on sim state. Paper + ink + red offset shadow.
 import { TILE } from "./tuning.js";
-import { findAnchor, center, spawnPoint } from "./physics.js";
+import { findAnchor, center, spawnPoint, ringGlow } from "./physics.js";
 import * as Art from "./oribu-art.js";
 const C = { paper: "#faf7f1", ink: "#1c1916", red: "#d63c3c", cuff: "#fb8500", mint: "#3fd0a0", pow: "#ffb703", sky: "#a9cde6", blue: "#3a86ff" };
 const VIEW_TILES = 11; // tiles visible vertically
@@ -45,7 +45,9 @@ export function makeRenderer(cv) {
     if (m.finish) Art.drawFlag(ctx, m.finish.x, m.finish.y, 1, 1, true);
     // anchors
     const target = s.p.rope ? s.p.rope.a : (s.dead ? null : findAnchor(s, s.p.last));
-    for (const a of m.anchors) Art.drawAnchor(ctx, a.x, a.y, a === target, time);
+    for (const a of m.anchors) { const gl = ringGlow(s, a);
+      if (gl > 0.05) { ctx.fillStyle = `rgba(255,183,3,${(0.15 + 0.45 * gl).toFixed(3)})`; ctx.beginPath(); ctx.arc(a.x, a.y, 14 + 14 * gl, 0, 7); ctx.fill(); }
+      Art.drawAnchor(ctx, a.x, a.y, a === target, time); }
     // balloons
     for (const b of m.balloons) if (!b.got) Art.drawBalloon(ctx, b.x, b.y, (b.x / TILE | 0), time);
     // pigeons
