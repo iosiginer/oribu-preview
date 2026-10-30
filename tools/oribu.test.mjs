@@ -73,13 +73,18 @@ test("bop bounces 3 tiles (4.5 held) and poofs the pigeon; side bump hops back +
     assert.ok(Math.abs((bopY - top) / TILE - want) < 0.2, `bop ${((bopY - top) / TILE).toFixed(2)}`);
   }
   const s = newState(LEVEL); s.cp = 3; const g = s.pigeons[0]; s.p.x = g.x - 40; s.p.y = g.y - T.h / 2; s.p.ground = true;
-  let bumped = false; for (let i = 0; i < 30; i++) { step(s, { r: true }); if (s.events.includes("bump")) { bumped = true; assert.ok(s.p.vx < 0 && s.p.vy < 0 && s.p.inv > 0.45 && s.p.inv <= 0.5); assert.ok(s.fx.length >= 10, "star burst around Oribu"); } }
+  let bumped = false; for (let i = 0; i < 30; i++) { step(s, { r: true }); if (s.events.includes("bump")) { bumped = true; assert.ok(s.p.vx < 0 && s.p.vy < 0 && s.p.inv > 0.45 && s.p.inv <= 0.5); assert.ok(s.events.includes("knock"), "knock event for the art layer"); assert.equal(s.fx.length, 0, "no placeholder stars on a bump"); } }
   assert.ok(bumped); assert.equal(s.dead, 0); assert.ok(s.pigeons[0].alive);
   run(s, 70); assert.equal(s.p.inv, 0);
 });
+test("fall: spin+shrink, poof, respawn at flag in ≤0.6 s", () => {
+  const s = newState(LEVEL); s.cp = 1; s.p.x = 14.5 * TILE; s.p.y = 19 * TILE; s.p.ground = false; let t0 = -1, poof = -1, back = -1;
+  for (let i = 0; i < 200 && back < 0; i++) { step(s, {}); if (s.events.includes("fall")) t0 = i; if (s.events.includes("poof")) poof = i; if (t0 >= 0 && i > t0 && !s.dead) back = i; }
+  assert.ok(t0 >= 0 && poof > t0 && back > poof); assert.ok((back - t0) / 60 <= 0.6 + 1e-9, `${(back - t0) / 60}s`);
+});
 test("falling off respawns at the last flag within ~1 s, no lives", () => {
   const s = newState(LEVEL); s.cp = 1; s.p.x = 14.5 * TILE; s.p.y = 19 * TILE; s.p.ground = false;
-  let died = -1; for (let i = 0; i < 200; i++) { step(s, {}); if (s.dead > 0 && died < 0) died = i; if (died >= 0 && !s.dead) { assert.ok(i - died <= 60); break; } }
+  let died = -1; for (let i = 0; i < 200; i++) { step(s, {}); if (s.dead > 0 && died < 0) died = i; if (died >= 0 && !s.dead) { assert.ok(i - died <= 36, `respawn took ${i - died} ticks`); break; } }
   assert.ok(died >= 0); const k = s.m.checkpoints[1]; assert.ok(Math.abs(center(s).x - k.x) < 1);
 });
 test("no tunneling: max-speed fall lands on a 1-tile floor", () => {

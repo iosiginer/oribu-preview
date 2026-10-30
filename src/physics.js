@@ -91,7 +91,7 @@ export function findAnchor(s, skip = null) {
   }
   return best;
 }
-function die(s) { if (s.dead > 0 || s.done) return; s.dead = s.t.respawnTime; const c = center(s); s.events.push("poof"); burst(s, c.x, c.y, 10); s.p.rope = null; }
+function die(s) { if (s.dead > 0 || s.done) return; s.dead = s.t.respawnTime; s.deadAt = center(s); s.poofed = false; s.events.push("fall"); s.p.rope = null; }
 function burst(s, x, y, n) { for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; s.fx.push({ x, y, vx: Math.cos(a) * 120, vy: Math.sin(a) * 120 - 40, life: 0.6 }); } }
 
 export function step(s, inp) {
@@ -100,7 +100,7 @@ export function step(s, inp) {
   s.fx = s.fx.filter(f => (f.life -= DT) > 0); s.fx.forEach(f => { f.x += f.vx * DT; f.y += f.vy * DT; f.vy += 300 * DT; });
   if (s.done) return s;
   s.tick++;
-  if (s.dead > 0) { s.dead -= DT; if (s.dead <= 0) { s.dead = 0; spawn(s); } return s; }
+  if (s.dead > 0) { s.dead -= DT; if (!s.poofed && s.dead <= s.t.poofAt) { s.poofed = true; s.events.push("poof"); burst(s, s.deadAt.x, Math.min(s.deadAt.y, s.m.H * TILE - 30), 10); } if (s.dead <= 0) { s.dead = 0; spawn(s); } return s; }
   const jumpPress = inp.jump && !p.prev.jump, swingPress = inp.swing && !p.prev.swing;
   if (swingPress || p.ground) p.last = null; // the anchor you just let go of needs a fresh press
   p.prev = { jump: !!inp.jump, swing: !!inp.swing };
@@ -180,7 +180,7 @@ export function step(s, inp) {
         p.vy = -(inp.jump ? D.bopHeldV : D.bopV); p.jumping = false; p.y = gy - t.h; p.rope = null;
       } else if (!(p.inv > 0)) { // side bump: hop back, blink, keep going
         const away = Math.sign(p.x + t.w / 2 - g.x) || -1; p.vx = away * D.hitX; p.vy = -D.hitUp; p.rope = null; p.jumping = false; p.ground = false;
-        p.inv = t.invuln; p.lock = 0.25; p.lockDir = -away; s.events.push("bump"); const hc = center(s); burst(s, hc.x, hc.y, 10);
+        p.inv = t.invuln; p.lock = 0.25; p.lockDir = -away; s.events.push("bump", "knock"); // knock stars are drawn by the art layer
       }
     }
   }
@@ -189,7 +189,7 @@ export function step(s, inp) {
   m.balloons.forEach((b, i) => { if (!b.got && Math.abs(b.x - c.x) < 22 && Math.abs(b.y - c.y) < 30) { b.got = true; s.events.push("balloon"); burst(s, b.x, b.y, 5); } });
   m.checkpoints.forEach((k, i) => { if (i > s.cp && Math.abs(k.x - c.x) < 24 && Math.abs(k.y - (p.y + t.h)) < 48) { s.cp = i; s.events.push("checkpoint"); } });
   if (m.finish && Math.abs(m.finish.x - c.x) < 24 && Math.abs(m.finish.y - (p.y + t.h)) < 48) { s.done = true; s.events.push("finish"); }
-  if (p.y > m.H * TILE + 64) die(s);
+  if (p.y > m.H * TILE - t.h / 2) die(s); // die while still at the screen's bottom edge so the spin is visible
   return s;
 }
 // Horizontal speed needed to land just past the near edge of the next roof ahead (normal gravity), or null.

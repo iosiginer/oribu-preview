@@ -38,7 +38,8 @@ export const T = {
   hitHopX: 4, hitHopUp: 1, // tiles/s back, tiles high
   invuln: 0.5,          // s grace after a bump: pigeons can't re-touch you (Oribu stays visible)
   // respawn
-  respawnTime: 0.8,     // s
+  respawnTime: 0.6,     // s total: spin + shrink, poof, then back at the flag
+  poofAt: 0.15,         // s left on the respawn timer when the poof fires
   pigeonSpeed: 1.2,     // tiles/s
   pigeonRespawn: 3,     // s
   // body (px)

@@ -71,6 +71,9 @@ export function makeRenderer(cv) {
     for (const g of s.pigeons) if (g.alive) pigeon(g, time);
     // hero
     if (!s.dead) hero(s, time);
+    else if (!s.poofed) { // spin + shrink before the poof
+      const k = Math.max(0, (s.dead - s.t.poofAt) / (s.t.respawnTime - s.t.poofAt)), c = s.deadAt;
+      ctx.save(); ctx.translate(c.x, Math.min(c.y, m.H * TILE - 30)); ctx.rotate((1 - k) * 4 * Math.PI); ctx.scale(k, k); ctx.translate(-c.x, -c.y); hero(s, time); ctx.restore(); }
     // stars fx
     for (const f of s.fx) star(f.x, f.y, 5 * Math.min(1, f.life * 2.5));
     function flag(x, y, col, up, fin) {
