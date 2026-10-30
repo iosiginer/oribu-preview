@@ -130,3 +130,24 @@ test("clearance: every standable spot has >= 72 px of headroom (no crouching nee
   // shafts are wide enough for the box
   for (const [a, b] of [[53, 57], [119, 123]]) assert.ok((b - a - 1) * TILE >= T.w + 40);
 });
+
+// every swing: release at 5..90° past the bottom (or at the top of the arc) -> first landing is on the NEXT roof, never past its far edge
+const SWINGS = [ // [name, start col, start roof top row, next roof first col, last col]
+  ["first swing (awning gap)", 76, 9, 82, 88], ["alley x3", 88, 10, 106, 122], ["combo swing", 131, 5, 137, 150]];
+for (const [name, sx, sy, r0, r1] of SWINGS) test(`${name}: releases 5..90° land on the next roof, never beyond`, () => {
+  const bad = [];
+  for (let deg = 5; deg <= 90; deg += 5) {
+    const s = newState(LEVEL); s.p.x = sx * TILE - 20; s.p.y = sy * TILE - T.h; s.p.vx = 192; let jumped = false, land = null;
+    for (let i = 0; i < 600 && land == null; i++) {
+      const p = s.p, c = center(s), inp = { r: true };
+      if (p.rope) { const a = p.rope.a, th = Math.atan2(c.x - a.x, c.y - a.y);
+        inp.swing = !(p.vx > 0 && (th > deg * Math.PI / 180 || (th > 0 && p.vy < 0 && Math.hypot(p.vx, p.vy) < 60))); }
+      else inp.swing = !p.ground && p.vy > -200;
+      if (!jumped && p.x > sx * TILE - 10) { inp.jump = true; jumped = true; }
+      const wasAir = !p.ground; step(s, inp);
+      if (s.dead) land = "fell"; else if (jumped && wasAir && s.p.ground && s.p.x > sx * TILE) land = center(s).x / TILE;
+    }
+    if (typeof land !== "number" || land < r0 - 0.5 || land > r1 + 1) bad.push(`${deg}°:${land}`);
+  }
+  assert.deepEqual(bad, []);
+});

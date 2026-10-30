@@ -74,7 +74,7 @@ const T = {
   releaseBoost: 1.3,
   assistTime: 0.3,      // s after a swing release: horizontal steer toward the landing roof (gravity stays normal)
   assistMinRun: 10,
-  assistLift: 12,        // tiles/s: a release always leaves with at least this much upward speed      // tiles/s forward speed floor during the assist
+  assistLift: 10,        // tiles/s: a release always leaves with at least this much upward speed      // tiles/s forward speed floor during the assist
   swingMaxSpeed: 12,    // tiles/s
   swingPump: 10,        // tiles/s² sideways push from ◀ ▶ while swinging
   regrabDelay: 0.15,    // s after a release before the rope can grab again
@@ -265,8 +265,9 @@ function step(s, inp) {
 
   // --- swing ---
   if (p.rope && !inp.swing) { // release: launch on the arc with a boost
-    p.vx *= t.releaseBoost; p.vy *= t.releaseBoost; p.vy = Math.min(p.vy, -D.assistLift); clampSpeed(p, D.swingMax);
-    p.last = p.rope.a; p.rope = null; p.regrab = t.regrabDelay; p.assist = t.assistTime; p.jumping = false; s.events.push("launch");
+    p.vx *= t.releaseBoost; p.vy *= t.releaseBoost; clampSpeed(p, D.swingMax);
+    if (p.vy > -D.assistLift) { p.vy = -D.assistLift; const vmax = Math.sqrt(Math.max(0, D.swingMax ** 2 - p.vy ** 2)); if (Math.abs(p.vx) > vmax) p.vx = Math.sign(p.vx) * vmax; } // lift wins over sideways speed
+    p.last = p.rope.a; p.rope = null; p.regrab = t.regrabDelay; p.assist = t.assistTime; p.roof = nextRoof(s); if (!p.roof) p.assist = 0; p.jumping = false; s.events.push("launch");
   }
   if (!p.rope && inp.swing && !p.ground && p.regrab <= 0) {
     const a = findAnchor(s, p.last);
@@ -296,9 +297,17 @@ function step(s, inp) {
       p.vy = -D.wallUp; p.vx = -p.wall * D.wallOut; p.lock = t.wallLock; p.lockDir = p.wall; p.face = -p.wall;
       p.jumping = false; p.buffer = 0; s.events.push("walljump");
     }
-    if (p.assist > 0 && dir !== -p.face) { // steer horizontally toward the landing roof; gravity untouched
-      const need = landingSpeed(s); const want = Math.max(D.assistMin, need ?? 0);
-      if (p.face * p.vx < want) p.vx = p.face * Math.min(want, D.swingMax);
+    if (p.assist > 0 && p.roof) { // steer sideways toward the NEXT roof only; gravity untouched
+      const r = p.roof, cx = p.x + t.w / 2;
+      if (cx >= r.x0 && cx <= r.x1) p.assist = 0; // over that roof: assist off
+      else if (dir !== -p.face) {
+        const time = fallTime(s, r.top);
+        if (time != null) {
+          const f = p.face, near = (f > 0 ? r.x0 + 14 : r.x1 - 14) - cx, far = (f > 0 ? r.x1 - 14 : r.x0 + 14) - cx;
+          const lo = Math.max(D.assistMin, near * f / time), hi = Math.min(Math.sqrt(Math.max(0, D.swingMax ** 2 - p.vy ** 2)), far * f / time);
+          const v = Math.min(Math.max(p.vx * f, lo), hi); if (hi > 0) p.vx = f * v; // never predicted past the far edge
+        }
+      }
     }
     // --- gravity ---
     let g = D.g;
@@ -345,21 +354,25 @@ function step(s, inp) {
   if (p.y > m.H * TILE - t.h / 2) die(s); // die while still at the screen's bottom edge so the spin is visible
   return s;
 }
-// Horizontal speed needed to land just past the near edge of the next roof ahead (normal gravity), or null.
-function landingSpeed(s) {
-  const p = s.p, t = s.t, D = s.D, f = p.face, feet = p.y + t.h, front = f > 0 ? p.x + t.w : p.x;
-  const apex = p.vy < 0 ? feet - p.vy * p.vy / (2 * D.g) : feet;
-  for (let k = 1; k <= 10; k++) {
-    const tx = Math.floor(front / TILE) + f * k; let ty = -1;
-    for (let y = 0; y < s.m.H; y++) if (solidAt(s.m, tx, y)) { ty = y; break; }
-    if (ty < 0) continue; const top = ty * TILE;
-    if (top < apex) return null; // a wall higher than we can reach: don't steer
-    // time to come down to the roof top: rise then fall (fall gravity)
-    const up = p.vy < 0 ? -p.vy / D.g : 0, drop = top - apex, fall = Math.sqrt(2 * Math.max(drop, 0) / D.fallG);
-    const edge = f > 0 ? tx * TILE + 12 : (tx + 1) * TILE - 12;
-    return Math.max(0, (edge - front) * f) / Math.max(up + fall, 0.05);
+// The next roof ahead of the hero (first column with ground whose top is below the hero's apex), as a span of same-height tops.
+function nextRoof(s) {
+  const p = s.p, t = s.t, f = p.face || 1, front = f > 0 ? p.x + t.w : p.x, feet = p.y + t.h;
+  const apex = p.vy < 0 ? feet - p.vy * p.vy / (2 * s.D.g) : feet;
+  const topOf = tx => { for (let y = 0; y < s.m.H; y++) if (solidAt(s.m, tx, y)) return y; return -1; };
+  for (let k = 1; k <= 16; k++) {
+    const tx = Math.floor(front / TILE) + f * k, ty = topOf(tx);
+    if (ty < 0) continue; if (ty * TILE < apex) return null;
+    let e = tx; while (topOf(e + f) === ty) e += f;
+    const x0 = Math.min(tx, e) * TILE, x1 = (Math.max(tx, e) + 1) * TILE;
+    return { x0, x1, top: ty * TILE };
   }
   return null;
+}
+// Seconds until the feet come down to height `top` (rise under normal gravity, fall under fall gravity), or null.
+function fallTime(s, top) {
+  const p = s.p, D = s.D, feet = p.y + s.t.h, up = p.vy < 0 ? -p.vy / D.g : 0, apex = p.vy < 0 ? feet - p.vy * p.vy / (2 * D.g) : feet;
+  if (top < apex) return null; const v0 = p.vy > 0 ? p.vy : 0, d = top - apex;
+  return up + (-v0 + Math.sqrt(v0 * v0 + 2 * D.fallG * d)) / D.fallG;
 }
 const approach = (v, to, d) => v < to ? Math.min(v + d, to) : Math.max(v - d, to);
 function clampSpeed(p, max) { const sp = Math.hypot(p.vx, p.vy); if (sp > max) { p.vx *= max / sp; p.vy *= max / sp; } }
