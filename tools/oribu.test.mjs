@@ -190,3 +190,19 @@ test("wall-kick carries 3 tiles out (no air drag during the 0.15 s lock)", () =>
   let maxx = x0; for (let i = 0; i < 40 && s.p.vy < 0; i++) { step(s, {}); maxx = Math.max(maxx, s.p.x); }
   assert.ok((maxx - x0) / TILE >= 2.9 || s.p.wall === 1, `out ${((maxx - x0) / TILE).toFixed(2)} tiles`);
 });
+test("chimney: no plain jump (any run-up, any hold) reaches the left wall top or the chimney roof without a wall-kick", () => {
+  const m = parseLevel(LEVEL), floor = 19 * TILE, wallTop = 6 * TILE, roofTop = 9 * TILE; let best = Infinity;
+  for (let sx = 41; sx <= 56; sx++) for (const dir of ["r", "l", null]) for (const hold of [1, 4, 8, 12, 16, 24, 40]) for (const delay of [0, 6, 12, 20, 30, 45]) {
+    const s = newState(LEVEL); s.p.x = sx * TILE + 4; s.p.y = floor - T.h; s.p.ground = true; let pressed = -1;
+    for (let i = 0; i < 150; i++) {
+      const inp = dir ? { [dir]: true } : {};
+      if (i >= delay && pressed < 0 && s.p.ground) pressed = i;
+      if (pressed >= 0 && i - pressed < hold && !s.p.wall) inp.jump = true; // never press jump against a wall = no wall-kick
+      step(s, inp); if (s.events.includes("walljump")) assert.fail("wall-kick happened");
+      best = Math.min(best, s.p.y + T.h);
+      if (s.p.ground && s.p.y + T.h <= roofTop + 0.5) assert.fail(`reached ${(s.p.y + T.h) / TILE} from x${sx} ${dir} hold${hold}`);
+    }
+  }
+  const h = (floor - best) / TILE; console.log(`  max plain-jump feet height ${h.toFixed(2)} tiles; left wall top ${(floor - wallTop) / TILE} tiles, chimney roof ${(floor - roofTop) / TILE} tiles`);
+  assert.ok(floor - best < floor - roofTop);
+});
