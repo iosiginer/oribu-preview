@@ -77,7 +77,7 @@ const T = {
   assistLift: 11,        // tiles/s: a release always leaves with at least this much upward speed      // tiles/s forward speed floor during the assist
   swingMaxSpeed: 12,    // tiles/s
   swingPump: 10,        // tiles/s² sideways push from ◀ ▶ while swinging
-  catchRange: 1.5,      // tiles: holding swing auto-catches any ring you pass this close to
+  catchRange: 2.5,      // tiles: holding swing auto-catches any ring you pass this close to
   regrabDelay: 0.15,    // s after a release before the rope can grab again
   // wall
   wallSlideMax: 2,      // tiles/s
@@ -127,27 +127,27 @@ const LEVEL = { name: "Rooftop Run", rows: [
   "                                                                                                                       W              o                          #######",
   "                                                                                                                       W                                         #######",
   "                                                                               o                                       W            b                            #######",
-  "                                                                                            o    o    o                W b W#######                              #######",
+  "                                                                                            o   o     o                W b W#######                              #######",
   "                                                     W                                                                 W   W#######                              #######",
   "                                                     W                        b                                        W   W#######                       b F    #######",
-  "                                                     W b      C   b                         b    b    b                W   W#######                    #################",
+  "                                                     W b      C   b                         b   b     b                W   W#######                    #################",
   "                                                     W   W##################        C                                      W#######                    #################",
   "                                                     W   W##################      #######                                  W#######                    #################",
   "                                                     W b W##################      #######                     C    b       W#######           b        #################",
-  "                                                     W   W##################      #######                 #################W#######               p    #################",
-  "                                                     W   W##################      #######                 #################W#######      ###############################",
-  "                                                     W   W##################      #######                 #################W#######      ###############################",
-  "                                                       b W##################      #######                 #################W#######      ###############################",
-  "               b       b                                 W##################      #######                 #################W#######      ###############################",
-  "         b                                  b            W##################   b  #######                 #################W#######      ###############################",
-  "  S C                            b              C b      W##################      #######                 #################W#######      ###############################",
-  "##############  ######   ######          ################W##################^^^^^^#######                 #################W#######      ###############################",
-  "##############  ######   ######          ################W###############################                 #################W#######      ###############################",
-  "##############  ######   ######          ################W###############################                 #################W#######      ###############################",
-  "##############  ######   ######    ######################W###############################                 #################W#######      ###############################",
-  "##############  ######   ######    ######################W###############################                 #################W#######      ###############################",
-  "##############  ######   ######    ######################W###############################                 #################W#######      ###############################",
-  "##############  ######   ######    ######################W###############################                 #################W#######      ###############################"
+  "                                                     W   W##################      #######                ##################W#######               p    #################",
+  "                                                     W   W##################      #######                ##################W#######      ###############################",
+  "                                                     W   W##################      #######                ##################W#######      ###############################",
+  "                                                       b W##################      #######                ##################W#######      ###############################",
+  "               b       b                                 W##################      #######                ##################W#######      ###############################",
+  "         b                                  b            W##################   b  #######                ##################W#######      ###############################",
+  "  S C                            b              C b      W##################      #######                ##################W#######      ###############################",
+  "##############  ######   ######          ################W##################^^^^^^#######                ##################W#######      ###############################",
+  "##############  ######   ######          ################W###############################                ##################W#######      ###############################",
+  "##############  ######   ######          ################W###############################                ##################W#######      ###############################",
+  "##############  ######   ######    ######################W###############################                ##################W#######      ###############################",
+  "##############  ######   ######    ######################W###############################                ##################W#######      ###############################",
+  "##############  ######   ######    ######################W###############################                ##################W#######      ###############################",
+  "##############  ######   ######    ######################W###############################                ##################W#######      ###############################"
 ] };
 
 // ---- physics.js
@@ -254,7 +254,7 @@ function step(s, inp) {
   s.tick++;
   if (s.dead > 0) { s.dead -= DT; if (!s.poofed && s.dead <= s.t.poofAt) { s.poofed = true; s.events.push("poof"); /* the art layer draws the single spin + poof */ } if (s.dead <= 0) { s.dead = 0; spawn(s); } return s; }
   const jumpPress = inp.jump && !p.prev.jump, swingPress = inp.swing && !p.prev.swing;
-  if (swingPress || p.ground) p.last = null; // the anchor you just let go of needs a fresh press
+  if (p.ground) p.last = null; // the ring you just let go of can only be re-grabbed after landing (auto-catch never pulls you back)
   p.prev = { jump: !!inp.jump, swing: !!inp.swing };
   let dir = (inp.r ? 1 : 0) - (inp.l ? 1 : 0);
   if (p.lock > 0) { p.lock -= DT; if (dir === p.lockDir) dir = 0; }
@@ -266,13 +266,15 @@ function step(s, inp) {
 
   // --- swing ---
   if (p.rope && !inp.swing) { // release: launch on the arc with a boost
+    const fwd = p.rope.dir || 1; /* level runs left to right */ // late (arc-top) releases still head forward, toward the next ring
+    if (p.vx * fwd < 0) p.vx = 0; p.face = fwd;
     p.vx *= t.releaseBoost; p.vy *= t.releaseBoost; clampSpeed(p, D.swingMax);
     if (p.vy > -D.assistLift) { p.vy = -D.assistLift; const vmax = Math.sqrt(Math.max(0, D.swingMax ** 2 - p.vy ** 2)); if (Math.abs(p.vx) > vmax) p.vx = Math.sign(p.vx) * vmax; } // lift wins over sideways speed
     p.last = p.rope.a; p.rope = null; p.regrab = t.regrabDelay; p.assist = t.assistTime; p.roof = nextRoof(s); p.ring = nextRing(s, p.roof); if (p.ring) p.roof = null; if (!p.roof && !p.ring) p.assist = 0; p.jumping = false; s.events.push("launch");
   }
   if (!p.rope && inp.swing && !p.ground && p.regrab <= 0) {
     const a = findAnchor(s, p.last) || catchAnchor(s);
-    if (a) { const c = center(s); p.rope = { a, len: Math.min(Math.hypot(a.x - c.x, a.y - c.y), D.ropeMax) }; s.events.push("grab"); }
+    if (a) { const c = center(s); p.rope = { a, dir: a.x >= c.x ? 1 : (p.face || 1), len: Math.min(Math.hypot(a.x - c.x, a.y - c.y), D.ropeMax) }; s.events.push("grab"); }
   }
   if (p.rope) {
     p.vy += D.g * DT; p.vx += dir * D.pump * DT;
@@ -291,11 +293,11 @@ function step(s, inp) {
     const target = dir * D.top;
     if (dir && Math.abs(p.vx) > D.top && Math.sign(p.vx) === dir) p.vx = Math.sign(p.vx) * Math.max(D.top, Math.abs(p.vx) - D.overDrag * DT);
     else if (dir) p.vx = approach(p.vx, target, (Math.sign(p.vx) === dir || !p.vx ? D.accel : D.decel) * DT);
-    else p.vx = approach(p.vx, 0, (p.ground ? D.decel : D.airDecel) * DT);
+    else if (!((p.lock > 0 || p.kick) && !p.ground)) p.vx = approach(p.vx, 0, (p.ground ? D.decel : D.airDecel) * DT); // no air drag during the wall-kick lock
     // --- jumps ---
     if (p.buffer > 0 && p.coyote > 0) { p.vy = -D.jumpV; p.jumping = true; p.buffer = 0; p.coyote = 0; p.ground = false; s.events.push("jump"); }
     else if (p.buffer > 0 && p.wall && !p.ground) {
-      p.vy = -D.wallUp; p.vx = -p.wall * D.wallOut; p.lock = t.wallLock; p.lockDir = p.wall; p.face = -p.wall;
+      p.vy = -D.wallUp; p.vx = -p.wall * D.wallOut; p.lock = t.wallLock; p.lockDir = p.wall; p.face = -p.wall; p.kick = true;
       p.jumping = false; p.buffer = 0; s.events.push("walljump");
     }
     if (p.assist > 0 && p.ring) { // no roof under the next ring: steer toward that ring, never past it
@@ -334,6 +336,7 @@ function step(s, inp) {
       if (p.vy >= 0 && Math.abs(ty * TILE - (p.y + t.h)) < 0.6) for (let x = x0; x <= x1; x++) if (solidAt(m, x, ty)) p.ground = true;
     }
   }
+  if (p.ground || p.rope || p.vy >= 0) p.kick = false; // a wall-kick keeps its sideways speed up to the apex
   p.wall = p.ground || p.rope ? 0 : wallSide(s, p);
 
   // --- pigeons ---
@@ -424,7 +427,7 @@ const ART = {
   tile: 32,
   heroShadow: "#c9bfae",
   heroShadowOff: 4,
-  heroScale: 1.3
+  heroScale: 1.27
   // hero only: no red on Oribu except the scarf
 };
 const TAU = Math.PI * 2;

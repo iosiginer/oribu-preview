@@ -18,7 +18,7 @@ const ART = {
   tile: 32,
   heroShadow: "#c9bfae",
   heroShadowOff: 4,
-  heroScale: 1.3
+  heroScale: 1.27
   // hero only: no red on Oribu except the scarf
 };
 const TAU = Math.PI * 2;

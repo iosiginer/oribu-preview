@@ -104,7 +104,7 @@ function alley(deg) {
       inp.swing = !(p.vx > 0 && (th > deg * Math.PI / 180 || (th > 0 && p.vy < 0 && Math.hypot(p.vx, p.vy) < 60))); }
     else inp.swing = !p.ground && p.vy > -200;
     if (!jumped && p.x > 88 * TILE - 10) { inp.jump = true; jumped = true; }
-    step(s, inp); if (s.dead) return false; if (s.p.ground && s.p.x > 106 * TILE) return true;
+    step(s, inp); if (s.dead) return false; if (s.p.ground && s.p.x > 105 * TILE) return true;
   }
   return false;
 }
@@ -133,7 +133,7 @@ test("clearance: every standable spot has >= 72 px of headroom (no crouching nee
 
 // every swing: release at 5..90° past the bottom (or at the top of the arc) -> first landing is on the NEXT roof, never past its far edge
 const SWINGS = [ // [name, start col, start roof top row, next roof first col, last col]
-  ["first swing (awning gap)", 76, 9, 82, 88], ["alley x3", 88, 10, 106, 122], ["combo swing", 131, 5, 137, 150]];
+  ["first swing (awning gap)", 76, 9, 82, 88], ["alley x3", 88, 10, 105, 122], ["combo swing", 131, 5, 137, 150]];
 for (const [name, sx, sy, r0, r1] of SWINGS) test(`${name}: releases 5..90° land on the next roof, never beyond`, () => {
   const bad = [];
   for (let deg = 5; deg <= 90; deg += 5) {
@@ -161,15 +161,15 @@ function alleyGrabs(deg) { // returns the rings grabbed in order, and how it end
     else inp.swing = !p.ground; // keep holding swing after a release
     if (!jumped && p.x > 88 * TILE - 10) { inp.jump = true; jumped = true; }
     step(s, inp); if (s.events.includes("grab")) got.push(s.p.rope.a.x / TILE | 0);
-    if (s.dead) return { got, end: "fell" }; if (s.p.ground && s.p.x > 106 * TILE - 20) return { got, end: "roof" };
+    if (s.dead) return { got, end: "fell" }; if (s.p.ground && s.p.x > 105 * TILE - 20) return { got, end: "roof" };
   }
   return { got, end: "timeout" };
 }
 test("alley: weak releases (5-30°) with swing held re-grab the next ring", () => {
-  for (let deg = 5; deg <= 30; deg += 5) { const r = alleyGrabs(deg); assert.deepEqual(r.got, [92, 97, 102], `${deg}°`); assert.equal(r.end, "roof", `${deg}°`); }
+  for (let deg = 5; deg <= 30; deg += 5) { const r = alleyGrabs(deg); assert.deepEqual(r.got, [92, 96, 102], `${deg}°`); assert.equal(r.end, "roof", `${deg}°`); }
 });
 test("alley: no release angle (5..90°) skips a ring", () => {
-  for (let deg = 5; deg <= 90; deg += 5) assert.deepEqual(alleyGrabs(deg).got, [92, 97, 102], `${deg}°`);
+  for (let deg = 5; deg <= 90; deg += 5) assert.deepEqual(alleyGrabs(deg).got, [92, 96, 102], `${deg}°`);
 });
 test("auto-catch: holding swing and passing within 1.5 tiles of a ring grabs it (even slightly behind)", () => {
   const s = newState(LEVEL); const a = s.m.anchors[1]; s.p.face = 1; s.p.ground = false;
@@ -183,4 +183,10 @@ test("alley flag: touching it saves it; a miss in the alley respawns there withi
   s.p.x = 96 * TILE; s.p.y = 14 * TILE; s.p.vx = 0; s.p.ground = false; s.p.rope = null; let fell = -1, back = -1;
   for (let i = 0; i < 300 && back < 0; i++) { step(s, {}); if (s.events.includes("fall")) fell = i; if (fell >= 0 && i > fell && !s.dead) back = i; }
   assert.ok(fell >= 0 && back - fell <= 60); assert.ok(Math.abs(center(s).x - s.m.checkpoints[k].x) < 1);
+});
+test("wall-kick carries 3 tiles out (no air drag during the 0.15 s lock)", () => {
+  const s = newState(LEVEL); s.p.x = 54 * TILE + 1; s.p.y = 9 * TILE; s.p.ground = false; s.p.vy = 50;
+  run(s, 2, { l: true }); assert.equal(s.p.wall, -1); const x0 = s.p.x; step(s, { jump: true });
+  let maxx = x0; for (let i = 0; i < 40 && s.p.vy < 0; i++) { step(s, {}); maxx = Math.max(maxx, s.p.x); }
+  assert.ok((maxx - x0) / TILE >= 2.9 || s.p.wall === 1, `out ${((maxx - x0) / TILE).toFixed(2)} tiles`);
 });
