@@ -15,7 +15,7 @@ put(48,14,'C')
 # S3 swing: first gap has a bounce awning floor, then 3 swings over alley
 put(62,4,'C')
 fill(76,81,16); fill(76,81,15,15,'^'); put(79,0,'o')
-fill(82,88,6); put(92,1,'o'); put(97,1,'o'); put(102,1,'o'); fill(106,122,8)
+fill(82,88,6); put(84,5,'C'); put(92,1,'o'); put(97,1,'o'); put(102,1,'o'); fill(106,122,8)
 # S4 combo: wall shaft -> swing -> pigeon bop -> finish ledge
 put(110,7,'C'); fill(119,119,-3,4,'W'); fill(123,123,1,H-1,'W'); fill(124,130,1)
 put(134,-2,'o'); fill(137,150,9); put(146,8,'p'); fill(151,160,4); put(156,3,'F')

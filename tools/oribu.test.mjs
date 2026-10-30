@@ -6,9 +6,9 @@ const run = (s, n, inp = {}) => { for (let i = 0; i < n; i++) step(s, typeof inp
 const fresh = () => run(newState(LEVEL), 5);
 const feet = s => s.p.y + T.h;
 
-test("level data: 20 balloons, 4 checkpoints, start, finish, anchors, pigeon", () => {
+test("level data: 20 balloons, 5 checkpoints, start, finish, anchors, pigeon", () => {
   const m = parseLevel(LEVEL);
-  assert.equal(m.balloons.length, 20); assert.equal(m.checkpoints.length, 4);
+  assert.equal(m.balloons.length, 20); assert.equal(m.checkpoints.length, 5);
   assert.ok(m.start && m.finish); assert.equal(m.anchors.length, 5); assert.equal(m.pigeons.length, 1);
 });
 test("tuning spec values", () => {
@@ -175,4 +175,12 @@ test("auto-catch: holding swing and passing within 1.5 tiles of a ring grabs it 
   const s = newState(LEVEL); const a = s.m.anchors[1]; s.p.face = 1; s.p.ground = false;
   s.p.x = a.x + 20 - T.w / 2; s.p.y = a.y + 10 - T.h / 2; s.p.vx = 100; s.p.prev = { jump: false, swing: true }; step(s, { swing: true });
   assert.equal(s.p.rope?.a, a);
+});
+test("alley flag: touching it saves it; a miss in the alley respawns there within ~1 s", () => {
+  const s = newState(LEVEL); const k = s.m.checkpoints.findIndex(c => c.x > 82 * TILE && c.x < 89 * TILE); assert.ok(k >= 0);
+  s.cp = k - 1; s.p.x = 83 * TILE; s.p.y = 10 * TILE - T.h; s.p.ground = true; run(s, 40, { r: true });
+  assert.equal(s.cp, k, "flag touched");
+  s.p.x = 96 * TILE; s.p.y = 14 * TILE; s.p.vx = 0; s.p.ground = false; s.p.rope = null; let fell = -1, back = -1;
+  for (let i = 0; i < 300 && back < 0; i++) { step(s, {}); if (s.events.includes("fall")) fell = i; if (fell >= 0 && i > fell && !s.dead) back = i; }
+  assert.ok(fell >= 0 && back - fell <= 60); assert.ok(Math.abs(center(s).x - s.m.checkpoints[k].x) < 1);
 });
