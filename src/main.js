@@ -47,7 +47,7 @@ function frame(now) {
   if (running) {
     acc += Math.min(0.25, (now - last) / 1000); last = now;
     let n = 0;
-    while (acc >= DT && n < 8) { step(s, input.poll()); acc -= DT; n++;
+    while (acc >= DT && n < 8) { step(s, input.poll()); acc -= DT; n++; R.note(s.events);
       if (s.events.includes("checkpoint")) saveCp();
       if (s.events.includes("finish")) { finish(); break; } }
     if (n === 8) acc = 0;

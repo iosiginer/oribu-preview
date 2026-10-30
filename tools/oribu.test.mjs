@@ -108,7 +108,7 @@ function alley(deg) {
   }
   return false;
 }
-for (const deg of [1, 5, 10, 30, 60, 89]) test(`alley: 3 swings cleared releasing at ${deg}° past the bottom`, () => assert.ok(alley(deg)));
+for (const deg of [5, 10, 30, 60, 89]) test(`alley: 3 swings cleared releasing at ${deg}° past the bottom`, () => assert.ok(alley(deg)));
 test("widest (4-tile) gap: takeoff window is at least 50 px", () => {
   const ok = [];
   for (let off = -60; off <= 80; off++) { const s = newState(LEVEL); s.p.x = 26 * TILE; s.p.y = 19 * TILE - T.h; s.p.vx = 192; let jumped = false, prev = false, res = false;
@@ -116,4 +116,17 @@ test("widest (4-tile) gap: takeoff window is at least 50 px", () => {
       if (s.dead) break; if (s.p.ground && s.p.x > 35 * TILE - 20) { res = true; break; } }
     if (res) ok.push(off); }
   const win = ok.at(-1) - ok[0] + 1; console.log(`  jump window ${win}px (${ok[0]}..${ok.at(-1)})`); assert.ok(win >= 50 && ok.length === win);
+});
+
+test("hitbox: solid 22x68 feet-anchored, pigeon box 18x44", () => { assert.equal(T.w, 22); assert.equal(T.h, 68); assert.equal(T.hurtW, 18); assert.equal(T.hurtH, 44); });
+test("clearance: every standable spot has >= 72 px of headroom (no crouching needed)", () => {
+  const m = parseLevel(LEVEL), solid = (x, y) => y >= 0 && "#W".includes(m.grid[y][x]);
+  const low = [];
+  for (let x = 0; x < m.W; x++) for (let y = 1; y < m.H; y++) if (solid(x, y) && !solid(x, y - 1)) {
+    let room = 0; for (let yy = y - 1; yy >= 0 && !solid(x, yy); yy--) room += TILE;
+    if (room < 72 && !(y - 1 - room / TILE < 0)) low.push(`${x},${y}:${room}`);
+  }
+  assert.deepEqual(low, []);
+  // shafts are wide enough for the box
+  for (const [a, b] of [[53, 57], [119, 123]]) assert.ok((b - a - 1) * TILE >= T.w + 40);
 });

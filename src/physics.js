@@ -100,7 +100,7 @@ export function step(s, inp) {
   s.fx = s.fx.filter(f => (f.life -= DT) > 0); s.fx.forEach(f => { f.x += f.vx * DT; f.y += f.vy * DT; f.vy += 300 * DT; });
   if (s.done) return s;
   s.tick++;
-  if (s.dead > 0) { s.dead -= DT; if (!s.poofed && s.dead <= s.t.poofAt) { s.poofed = true; s.events.push("poof"); burst(s, s.deadAt.x, Math.min(s.deadAt.y, s.m.H * TILE - 30), 10); } if (s.dead <= 0) { s.dead = 0; spawn(s); } return s; }
+  if (s.dead > 0) { s.dead -= DT; if (!s.poofed && s.dead <= s.t.poofAt) { s.poofed = true; s.events.push("poof"); /* the art layer draws the single spin + poof */ } if (s.dead <= 0) { s.dead = 0; spawn(s); } return s; }
   const jumpPress = inp.jump && !p.prev.jump, swingPress = inp.swing && !p.prev.swing;
   if (swingPress || p.ground) p.last = null; // the anchor you just let go of needs a fresh press
   p.prev = { jump: !!inp.jump, swing: !!inp.swing };
@@ -173,9 +173,11 @@ export function step(s, inp) {
   for (const g of s.pigeons) {
     if (!g.alive) { if ((g.back -= DT) <= 0) { g.alive = true; g.x = g.x0; } continue; }
     g.x += g.dir * D.pigeon * DT; if (Math.abs(g.x - g.x0) > TILE * 2) g.dir *= -1;
-    const px = p.x, py = p.y, gx = g.x - g.w / 2, gy = g.y - g.h / 2;
-    if (px < gx + g.w && px + t.w > gx && py < gy + g.h && py + t.h > gy) {
-      if (p.vy > 0 && py + t.h - p.vy * DT <= gy + 8) {
+    const gx = g.x - g.w / 2, gy = g.y - g.h / 2, hx = p.x + (t.w - t.hurtW) / 2, hy = p.y + (t.h - t.hurtH) / 2, feetY = p.y + t.h;
+    const hurt = hx < gx + g.w && hx + t.hurtW > gx && hy < gy + g.h && hy + t.hurtH > gy;
+    const stomp = p.vy > 0 && p.x < gx + g.w && p.x + t.w > gx && feetY >= gy && feetY - p.vy * DT <= gy + 8;
+    if (hurt || stomp) {
+      if (stomp) {
         g.alive = false; g.back = t.pigeonRespawn; burst(s, g.x, g.y, 8); s.events.push("bop");
         p.vy = -(inp.jump ? D.bopHeldV : D.bopV); p.jumping = false; p.y = gy - t.h; p.rope = null;
       } else if (!(p.inv > 0)) { // side bump: hop back, blink, keep going

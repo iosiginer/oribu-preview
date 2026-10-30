@@ -1,4 +1,4 @@
-:root{--ink:#1c1916;--paper:#faf7f1;--red:#d63c3c;--pow:#ffb703;--blue:#3a86ff;--sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;--display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+:root{--ink:#1c1916;--paper:#faf7f1;--red:#d63c3c;--pow:#ffb703;--blue:#49c6ff;--sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;--display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:#a9cde6;font-family:var(--sans);color:var(--ink);overscroll-behavior:none}
 [hidden]{display:none!important}
@@ -13,9 +13,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#a9cde6;font-family:va
 #pad .mv,#pad .ac{display:flex;gap:12px;pointer-events:auto}
 #pad .ac{align-items:flex-end}
 #pad button{width:72px;height:72px;min-width:56px;min-height:56px;border-radius:50%;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);background:var(--paper);font:800 24px var(--sans);color:var(--ink);touch-action:none;opacity:.92;padding:0}
-#pad .jp{background:var(--blue);color:#fff;font-size:15px;width:84px;height:84px}
+#pad .jp{background:var(--blue);color:var(--ink);font-size:15px;width:84px;height:84px}
 #pad .sw{background:var(--pow);font-size:14px;width:80px;height:80px;margin-bottom:38px}
-#pad button.on{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink);filter:brightness(.92)}
+#pad button.on{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
 .ov{position:absolute;inset:0;display:grid;place-items:center;background:#a9cde6cc;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));overflow:auto}
 .box{background:var(--paper);border:2.5px solid var(--ink);box-shadow:6px 6px 0 var(--red);border-radius:20px;padding:16px 22px;max-width:440px;width:100%;text-align:center}
 .box h1{font:700 44px var(--display);margin:0;letter-spacing:.5px}.box h2{font:700 28px var(--display);margin:4px 0 8px}

@@ -22,7 +22,7 @@ export const T = {
   releaseBoost: 1.3,
   assistTime: 0.3,      // s after a swing release: horizontal steer toward the landing roof (gravity stays normal)
   assistMinRun: 10,
-  assistLift: 10,        // tiles/s: a release always leaves with at least this much upward speed      // tiles/s forward speed floor during the assist
+  assistLift: 12,        // tiles/s: a release always leaves with at least this much upward speed      // tiles/s forward speed floor during the assist
   swingMaxSpeed: 12,    // tiles/s
   swingPump: 10,        // tiles/s² sideways push from ◀ ▶ while swinging
   regrabDelay: 0.15,    // s after a release before the rope can grab again
@@ -43,7 +43,8 @@ export const T = {
   pigeonSpeed: 1.2,     // tiles/s
   pigeonRespawn: 3,     // s
   // body (px)
-  w: 20, h: 40,
+  w: 22, h: 68,         // solid box (tiles, walls, ceilings), feet-anchored; art is drawn at heroScale 1.3
+  hurtW: 18, hurtH: 44, // pigeon touch box, centred on the body
 };
 // Derived values in px and px/s (computed, don't edit)
 export function derive(t = T) {
