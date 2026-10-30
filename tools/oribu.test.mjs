@@ -12,8 +12,8 @@ test("level data: 20 balloons, 4 checkpoints, start, finish, anchors, pigeon", (
   assert.ok(m.start && m.finish); assert.equal(m.anchors.length, 5); assert.equal(m.pigeons.length, 1);
 });
 test("tuning spec values", () => {
-  assert.equal(TILE, 32); assert.equal(T.runTop, 6); assert.equal(T.coyote, 0.1); assert.equal(T.buffer, 0.12); assert.equal(T.fallMult, 1.6);
-  assert.equal(T.swingRange, 6); assert.equal(T.ropeMax, 5); assert.equal(T.releaseBoost, 1.15); assert.equal(T.swingMaxSpeed, 12);
+  assert.equal(TILE, 32); assert.equal(T.runTop, 6); assert.equal(T.coyote, 0.15); assert.equal(T.jumpHold, 4.5); assert.equal(T.buffer, 0.12); assert.equal(T.fallMult, 1.6);
+  assert.equal(T.swingRange, 6); assert.equal(T.ropeMax, 5); assert.equal(T.releaseBoost, 1.3); assert.equal(T.invuln, 1); assert.equal(T.swingMaxSpeed, 12);
   assert.equal(T.wallSlideMax, 2); assert.equal(T.wallJumpOut, 3); assert.equal(T.wallJumpUp, 3.5); assert.equal(T.wallLock, 0.15);
   assert.equal(T.bop, 3); assert.equal(T.bopHeld, 4.5);
 });
@@ -21,14 +21,14 @@ test("run reaches 6 tiles/s in ~0.15 s and stops within half a tile", () => {
   const s = fresh(); run(s, 9, { r: true }); assert.ok(s.p.vx >= 6 * TILE - 1, `vx ${s.p.vx}`);
   run(s, 30, { r: true }); const x = s.p.x; run(s, 30); assert.equal(s.p.vx, 0); assert.ok(s.p.x - x < TILE / 2, `slid ${(s.p.x - x).toFixed(1)}px`);
 });
-for (const [name, held, want] of [["tap", false, 2], ["hold", true, 4]]) test(`${name} jump ≈ ${want} tiles`, () => {
+for (const [name, held, want] of [["tap", false, 2], ["hold", true, 4.5]]) test(`${name} jump ≈ ${want} tiles`, () => {
   const s = fresh(), y0 = feet(s); let top = y0;
   run(s, 80, i => ({ jump: held || i === 0 })); // min tracked below
   const s2 = fresh(); for (let i = 0; i < 80; i++) { step(s2, { jump: held || i === 0 }); top = Math.min(top, feet(s2)); }
   const h = (y0 - top) / TILE; assert.ok(Math.abs(h - want) < 0.15, `height ${h.toFixed(2)}`);
 });
 test("fall gravity is 1.6x", () => { const D = derive(); assert.ok(Math.abs(D.fallG / D.g - 1.6) < 1e-9); });
-test("coyote: jump 0.08 s after leaving a ledge still counts; 0.2 s does not", () => {
+test("coyote (0.15 s): jump 0.08 s after leaving a ledge still counts; 0.2 s does not", () => {
   for (const [late, ok] of [[5, true], [12, false]]) {
     const s = newState(LEVEL); s.p.x = 13 * TILE - 2; s.p.vx = 192; s.p.ground = true; let left = -1, jumped = false;
     for (let i = 0; i < 60; i++) { if (left < 0 && !s.p.ground && i > 0) left = i; const j = left >= 0 && i === left + late; step(s, { r: true, jump: j }); if (s.events.includes("jump")) jumped = true; }
@@ -65,7 +65,7 @@ test("wall slide capped at 2 tiles/s; wall jump kicks away and locks steering", 
   step(s, { l: true, jump: true }); assert.ok(s.p.vx > 0 && s.p.vy < 0); assert.ok(s.p.lock > 0);
   step(s, { l: true }); assert.ok(s.p.vx > 0, "steering toward the wall is ignored during the lock");
 });
-test("bop bounces 3 tiles (4.5 held) and poofs the pigeon; side hit respawns at last flag", () => {
+test("bop bounces 3 tiles (4.5 held) and poofs the pigeon; side bump hops back + blinks, no respawn", () => {
   for (const [held, want] of [[false, 3], [true, 4.5]]) {
     const s = newState(LEVEL); const g = s.pigeons[0]; s.p.x = g.x - T.w / 2; s.p.y = g.y - g.h / 2 - T.h - 20; s.p.vy = 200; s.p.ground = false;
     let bopY = null, top = 1e9; for (let i = 0; i < 80; i++) { step(s, { jump: held }); if (s.events.includes("bop")) bopY = feet(s); if (bopY != null) top = Math.min(top, feet(s)); }
@@ -73,7 +73,9 @@ test("bop bounces 3 tiles (4.5 held) and poofs the pigeon; side hit respawns at 
     assert.ok(Math.abs((bopY - top) / TILE - want) < 0.2, `bop ${((bopY - top) / TILE).toFixed(2)}`);
   }
   const s = newState(LEVEL); s.cp = 3; const g = s.pigeons[0]; s.p.x = g.x - 40; s.p.y = g.y - T.h / 2; s.p.ground = true;
-  run(s, 30, { r: true }); assert.ok(s.dead > 0 || s.p.x < g.x - 100);
+  let bumped = false; for (let i = 0; i < 30; i++) { step(s, { r: true }); if (s.events.includes("bump")) { bumped = true; assert.ok(s.p.vx < 0 && s.p.vy < 0 && s.p.inv > 0.9); } }
+  assert.ok(bumped); assert.equal(s.dead, 0); assert.ok(s.pigeons[0].alive);
+  run(s, 70); assert.equal(s.p.inv, 0);
 });
 test("falling off respawns at the last flag within ~1 s, no lives", () => {
   const s = newState(LEVEL); s.cp = 1; s.p.x = 14.5 * TILE; s.p.y = 19 * TILE; s.p.ground = false;
@@ -86,4 +88,27 @@ test("no tunneling: max-speed fall lands on a 1-tile floor", () => {
 });
 test("balloons and checkpoints are collected", () => {
   const s = newState(LEVEL); const b = s.m.balloons[0]; s.p.x = b.x - T.w / 2; s.p.y = b.y - T.h / 2; step(s, {}); assert.equal(balloonsGot(s), 1);
+});
+
+// bot: run right, jump off roof G, hold swing, let go at a given angle past the bottom (or at the top of the arc if it never gets there)
+function alley(deg) {
+  const s = newState(LEVEL); s.cp = 2; s.p.x = 88 * TILE - 20; s.p.y = 10 * TILE - T.h; s.p.vx = 192; let jumped = false;
+  for (let i = 0; i < 600; i++) {
+    const p = s.p, c = center(s), inp = { r: true };
+    if (p.rope) { const a = p.rope.a, th = Math.atan2(c.x - a.x, c.y - a.y);
+      inp.swing = !(p.vx > 0 && (th > deg * Math.PI / 180 || (th > 0 && p.vy < 0 && Math.hypot(p.vx, p.vy) < 60))); }
+    else inp.swing = !p.ground && p.vy > -200;
+    if (!jumped && p.x > 88 * TILE - 10) { inp.jump = true; jumped = true; }
+    step(s, inp); if (s.dead) return false; if (s.p.ground && s.p.x > 106 * TILE) return true;
+  }
+  return false;
+}
+for (const deg of [10, 30, 60]) test(`alley: 3 swings cleared releasing at ${deg}° past the bottom`, () => assert.ok(alley(deg)));
+test("widest (4-tile) gap: takeoff window is at least 50 px", () => {
+  const ok = [];
+  for (let off = -60; off <= 80; off++) { const s = newState(LEVEL); s.p.x = 26 * TILE; s.p.y = 19 * TILE - T.h; s.p.vx = 192; let jumped = false, prev = false, res = false;
+    for (let i = 0; i < 200; i++) { let j = prev; if (!jumped && s.p.x + T.w >= 31 * TILE + off) { j = true; jumped = true; } step(s, { r: true, jump: j }); prev = j;
+      if (s.dead) break; if (s.p.ground && s.p.x > 35 * TILE - 20) { res = true; break; } }
+    if (res) ok.push(off); }
+  const win = ok.at(-1) - ok[0] + 1; console.log(`  jump window ${win}px (${ok[0]}..${ok.at(-1)})`); assert.ok(win >= 50 && ok.length === win);
 });

@@ -70,7 +70,7 @@ export function makeRenderer(cv) {
     // pigeons
     for (const g of s.pigeons) if (g.alive) pigeon(g, time);
     // hero
-    if (!s.dead) hero(s, time);
+    if (!s.dead && !(s.p.inv > 0 && Math.floor(time * 12) % 2)) hero(s, time);
     // stars fx
     for (const f of s.fx) star(f.x, f.y, 5 * Math.min(1, f.life * 2.5));
     function flag(x, y, col, up, fin) {

@@ -107,14 +107,15 @@ export function step(s, inp) {
   let dir = (inp.r ? 1 : 0) - (inp.l ? 1 : 0);
   if (p.lock > 0) { p.lock -= DT; if (dir === p.lockDir) dir = 0; }
   if (dir) p.face = dir;
-  p.regrab = Math.max(0, p.regrab - DT);
+  p.regrab = Math.max(0, p.regrab - DT); p.inv = Math.max(0, (p.inv || 0) - DT);
+  p.assist = p.ground || p.wall ? 0 : Math.max(0, (p.assist || 0) - DT);
   p.buffer = jumpPress ? t.buffer : Math.max(0, p.buffer - DT);
   p.coyote = p.ground ? t.coyote : Math.max(0, p.coyote - DT);
 
   // --- swing ---
   if (p.rope && !inp.swing) { // release: launch on the arc with a boost
-    p.vx *= t.releaseBoost; p.vy *= t.releaseBoost; clampSpeed(p, D.swingMax);
-    p.last = p.rope.a; p.rope = null; p.regrab = t.regrabDelay; p.jumping = false; s.events.push("launch");
+    p.vx *= t.releaseBoost; p.vy *= t.releaseBoost; p.vy = Math.min(p.vy, -D.assistLift); clampSpeed(p, D.swingMax);
+    p.last = p.rope.a; p.rope = null; p.regrab = t.regrabDelay; p.assist = t.assistTime; p.jumping = false; s.events.push("launch");
   }
   if (!p.rope && inp.swing && !p.ground && p.regrab <= 0) {
     const a = findAnchor(s, p.last);
@@ -144,8 +145,9 @@ export function step(s, inp) {
       p.vy = -D.wallUp; p.vx = -p.wall * D.wallOut; p.lock = t.wallLock; p.lockDir = p.wall; p.face = -p.wall;
       p.jumping = false; p.buffer = 0; s.events.push("walljump");
     }
+    if (p.assist > 0 && dir !== -p.face && Math.abs(p.vx) < D.assistMin) p.vx = p.face * D.assistMin;
     // --- gravity ---
-    let g = D.g;
+    let g = D.g; if (p.assist > 0) g *= t.assistGravity;
     if (p.vy > 0) g *= t.fallMult; else if (p.jumping && !inp.jump) g *= D.cutMult;
     p.vy = Math.min(p.vy + g * DT, D.maxFall);
     if (p.wall && p.vy > D.wallSlide && dir !== -p.wall) p.vy = D.wallSlide;
@@ -173,7 +175,10 @@ export function step(s, inp) {
       if (p.vy > 0 && py + t.h - p.vy * DT <= gy + 8) {
         g.alive = false; g.back = t.pigeonRespawn; burst(s, g.x, g.y, 8); s.events.push("bop");
         p.vy = -(inp.jump ? D.bopHeldV : D.bopV); p.jumping = false; p.y = gy - t.h; p.rope = null;
-      } else { die(s); return s; }
+      } else if (!(p.inv > 0)) { // side bump: hop back, blink, keep going
+        const away = Math.sign(p.x + t.w / 2 - g.x) || -1; p.vx = away * D.hitX; p.vy = -D.hitUp; p.rope = null; p.jumping = false; p.ground = false;
+        p.inv = t.invuln; p.lock = 0.25; p.lockDir = -away; s.events.push("bump");
+      }
     }
   }
   // --- pickups ---

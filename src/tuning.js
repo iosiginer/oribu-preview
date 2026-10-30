@@ -9,17 +9,21 @@ export const T = {
   airDecelTime: 0.35,   // s, when no input in the air (keeps wall-kicks and swing launches flowing)
   overspeedDrag: 6,     // tiles/s² bleed when faster than runTop (after a swing launch)
   // jump
-  jumpHold: 4,          // tiles, holding jump
+  jumpHold: 4.5,        // tiles, holding jump
   jumpTap: 2,           // tiles, a quick tap
   gravity: 75,          // tiles/s² base
   fallMult: 1.6,        // gravity multiplier while falling
   maxFall: 28,          // tiles/s
-  coyote: 0.1,          // s grace after leaving a ledge
+  coyote: 0.15,         // s grace after leaving a ledge
   buffer: 0.12,         // s a jump press is remembered before landing
   // swing
   swingRange: 6,        // tiles: grabs nearest glowing anchor ahead/above
   ropeMax: 5,           // tiles: rope length at grab is capped here
-  releaseBoost: 1.15,
+  releaseBoost: 1.3,
+  assistTime: 0.5,      // s after a swing release: gentle arc assist toward the next roof
+  assistGravity: 0.7,   // gravity multiplier during the assist
+  assistMinRun: 6,
+  assistLift: 8,        // tiles/s: a release always leaves with at least this much upward speed      // tiles/s forward speed floor during the assist
   swingMaxSpeed: 12,    // tiles/s
   swingPump: 10,        // tiles/s² sideways push from ◀ ▶ while swinging
   regrabDelay: 0.15,    // s after a release before the rope can grab again
@@ -31,6 +35,9 @@ export const T = {
   // bop + bounce
   bop: 3, bopHeld: 4.5, // tiles
   awning: 12,           // tiles, bounce awning height
+  // pigeon side bump (no respawn)
+  hitHopX: 4, hitHopUp: 1, // tiles/s back, tiles high
+  invuln: 1,            // s blinking, pigeons can't touch you
   // respawn
   respawnTime: 0.8,     // s
   pigeonSpeed: 1.2,     // tiles/s
@@ -51,7 +58,7 @@ export function derive(t = T) {
     wallSlide: t.wallSlideMax * TILE, wallUp: v(t.wallJumpUp),
     // horizontal speed so the kick covers wallJumpOut tiles by the apex
     wallOut: t.wallJumpOut * TILE / (v(t.wallJumpUp) / g),
-    bopV: v(t.bop), bopHeldV: v(t.bopHeld), awningV: v(t.awning),
+    bopV: v(t.bop), hitUp: v(t.hitHopUp), hitX: t.hitHopX * TILE, assistMin: t.assistMinRun * TILE, assistLift: t.assistLift * TILE, bopHeldV: v(t.bopHeld), awningV: v(t.awning),
     pigeon: t.pigeonSpeed * TILE,
   };
 }
