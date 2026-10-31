@@ -1,9 +1,10 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Oribu — Tablero</title><meta name="theme-color" content="#a9cde6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="icon" href="data:,">
-<style>:root{--ink:#1c1916;--paper:#faf7f1;--red:#d63c3c;--pow:#ffb703;--blue:#49c6ff;--sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;--display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+<style>html,body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}button,canvas,svg,[role=button]{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}input,select,textarea{font-size:max(16px,1em)}
+:root{--ink:#1c1916;--paper:#faf7f1;--red:#d63c3c;--pow:#ffb703;--blue:#49c6ff;--sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;--display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:#a9cde6;font-family:var(--sans);color:var(--ink);overscroll-behavior:none}
 [hidden]{display:none!important}
@@ -1251,4 +1252,4 @@ function frame(now) {
 }
 showTitle(); requestAnimationFrame(frame);
 
-</script></body></html>
+</script><script>(function(){var p=function(e){e.preventDefault()};["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,p,{passive:false})});document.addEventListener("dblclick",p,{passive:false});var l=0;document.addEventListener("touchend",function(e){var n=Date.now(),t=e.target;if(n-l<300&&t&&t.closest&&t.closest("button,canvas,svg,[role=button]")&&!t.closest("input,textarea,select,[contenteditable]")){e.preventDefault();if(t.closest("button"))t.closest("button").click()}l=n},{passive:false})})();</script></body></html>
